@@ -1,0 +1,3654 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard de Impacto — Influencer & Marcas</title>
+
+    <!-- Tailwind CSS v4 — Opción A: browser build (prototipado, sin paso de compilación) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <!-- Charts.css: gráficas basadas en <table> semántica, sin JS (bar/column/stacked) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/charts.css/dist/charts.min.css"
+    />
+    <style type="text/tailwindcss">
+      @import "tailwindcss";
+
+      /* @theme registra estas variables como tokens de Tailwind: cada --color-x
+         genera automáticamente clases utilitarias bg-x, text-x, fill-x, stroke-x, etc. */
+      @theme {
+        /* Colores de marca por plataforma (para las gráficas) */
+        --color-ig: oklch(0.65 0.22 12);
+        --color-ig-alt: oklch(0.75 0.16 60);
+        --color-tiktok: oklch(0.78 0.14 195);
+        --color-tiktok-alt: oklch(0.68 0.22 350);
+        --color-youtube: oklch(0.6 0.23 27);
+
+        /* Acento y semánticos del dashboard: brand = color de marca del panel;
+           positive/negative/warning colorean tendencias, badges de estado y alertas */
+        --color-brand: var(--color-indigo-600);
+        --color-positive: var(--color-emerald-500);
+        --color-negative: var(--color-rose-500);
+        --color-warning: var(--color-amber-500);
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-800">
+    <!-- Skip link: oculto con sr-only; al recibir foco (Tab) se hace visible y fijo
+         en la esquina superior izquierda, permitiendo saltar el menú e ir directo al <main> -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >Saltar al contenido principal</a
+    >
+
+    <!-- Estado del drawer móvil (menú lateral en pantallas pequeñas): un checkbox oculto
+         guarda si el menú está abierto o cerrado. El botón hamburguesa y el botón "cerrar"
+         son <label for="nav-toggle">, así que al hacer clic marcan/desmarcan el checkbox
+         sin usar JavaScript. Todo lo que use la clase "peer-checked:" reacciona a ese estado. -->
+    <input type="checkbox" id="nav-toggle" class="peer hidden" />
+
+    <!-- Backdrop (fondo oscuro, solo móvil): cubre toda la pantalla cuando el checkbox
+         está marcado (peer-checked:block); es también un <label>, así que al hacer clic
+         fuera del drawer se desmarca el checkbox y el menú se cierra -->
+    <label
+      for="nav-toggle"
+      aria-hidden="true"
+      class="fixed inset-0 z-40 hidden bg-slate-900/40 peer-checked:block lg:hidden"
+    ></label>
+
+    <!-- Drawer (menú deslizante, solo visible en móvil/tablet, oculto desde lg con lg:hidden):
+         panel fijo a la izquierda que aparece con una transición de translate-x cuando el
+         checkbox de arriba está marcado. Contiene el mismo <nav> que el sidebar de escritorio -->
+    <aside
+      class="fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col bg-white transition-transform duration-200 ease-in-out peer-checked:translate-x-0 lg:hidden"
+    >
+      <div
+        class="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4"
+      >
+        <span class="text-sm font-semibold text-slate-800 2xl:text-xs"
+          >Menú</span
+        >
+        <label
+          for="nav-toggle"
+          aria-label="Cerrar menú"
+          class="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+            class="h-5 w-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </label>
+      </div>
+      <nav
+        aria-label="Navegación principal (menú móvil)"
+        class="flex-1 space-y-1 overflow-y-auto p-3"
+      >
+        <!-- Cada enlace del menú es un icono SVG + texto. El enlace activo lleva
+             aria-current="page" y usa clases fijas (bg-brand/10 text-brand) en vez de
+             la variante aria-[current=page]: que se ve en el navbar, así que aquí el
+             resaltado no cambia dinámicamente: hay que editar el HTML para marcar otra página activa -->
+        <a
+          href="#"
+          aria-current="page"
+          class="flex items-center gap-3 rounded-lg bg-brand/10 px-3 py-2 text-sm font-medium text-brand"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+            class="h-5 w-5 shrink-0"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+            />
+          </svg>
+          <span>Resumen general</span>
+        </a>
+        <a
+          href="#"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+            class="h-5 w-5 shrink-0"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
+            />
+          </svg>
+          <span>Rendimiento</span>
+        </a>
+        <a
+          href="#"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+            class="h-5 w-5 shrink-0"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+            />
+          </svg>
+          <span>Productos</span>
+        </a>
+        <a
+          href="#"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+            class="h-5 w-5 shrink-0"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418"
+            />
+          </svg>
+          <span>Plataformas</span>
+        </a>
+        <a
+          href="#"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+            class="h-5 w-5 shrink-0"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.282m3.102.069a18.03 18.03 0 0 1-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 0 1 8.835 2.535M10.34 6.66a23.847 23.847 0 0 0 8.835-2.535m0 0A23.74 23.74 0 0 0 18.795 3m.38 1.125a23.91 23.91 0 0 1 1.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 0 0 1.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 0 1 0 3.46"
+            />
+          </svg>
+          <span>Campañas</span>
+        </a>
+        <a
+          href="#"
+          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+            class="h-5 w-5 shrink-0"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+            />
+          </svg>
+          <span>Alertas</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Chasis (estructura general de la página): columna flex de altura mínima
+         de pantalla completa. Primero va el navbar (fila fija arriba) y después una
+         fila que contiene el sidebar y el <main> -->
+    <div class="flex min-h-screen flex-col">
+      <!-- NAVBAR: barra superior fija (sticky top-0) que permanece visible al hacer scroll.
+           z-50 y fondo semitransparente con blur para quedar por encima del contenido -->
+      <header
+        class="sticky top-0 z-50 flex h-16 shrink-0 items-center border-b border-slate-200 bg-white/90 backdrop-blur"
+      >
+        <div
+          class="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 md:px-6 lg:px-8"
+        >
+          <!-- Izquierda: botón hamburguesa (solo visible bajo lg, abre el drawer marcando
+               el checkbox #nav-toggle) + avatar con iniciales + nombre del usuario -->
+          <div class="flex items-center gap-3">
+            <label
+              for="nav-toggle"
+              aria-label="Abrir menú de navegación"
+              class="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 lg:hidden"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                aria-hidden="true"
+                class="h-5 w-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"
+                />
+              </svg>
+            </label>
+
+            <a href="#" class="flex items-center gap-2">
+              <span
+                class="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-semibold text-white"
+                >DR</span
+              >
+              <span class="hidden text-sm font-semibold text-slate-800 sm:block"
+                >Diego Reynoso</span
+              >
+            </a>
+          </div>
+
+          <!-- Centro (opcional): título de la vista actual (el único <h1> del documento).
+               sr-only en móvil (no display:none) para que siga presente en el árbol de
+               accesibilidad aunque visualmente esté oculto hasta el breakpoint md -->
+          <div
+            class="sr-only flex-1 justify-center md:not-sr-only md:static md:flex"
+          >
+            <h1 class="text-sm font-medium text-slate-500">Resumen general</h1>
+          </div>
+
+          <!-- Derecha: acciones rápidas (rango de fechas, filtro de plataforma, alertas, usuario) -->
+          <div class="flex items-center gap-2 md:gap-3">
+            <!-- Selector de rango de fechas (7d/30d/90d): son enlaces (cambiarían la
+                 query string ?rango=), no botones. El activo lleva aria-current="page"
+                 y las clases aria-[current=page]: le aplican fondo blanco y sombra -->
+            <nav
+              aria-label="Rango de fechas"
+              class="hidden items-center gap-0.5 rounded-lg bg-slate-100 p-0.5 text-xs font-medium md:flex"
+            >
+              <a
+                href="?rango=7d"
+                class="rounded-md px-2.5 py-1 text-slate-500 hover:text-slate-800"
+                >7d</a
+              >
+              <a
+                href="?rango=30d"
+                aria-current="page"
+                class="rounded-md px-2.5 py-1 text-slate-500 aria-[current=page]:bg-white aria-[current=page]:text-slate-800 aria-[current=page]:shadow-xs"
+                >30d</a
+              >
+              <a
+                href="?rango=90d"
+                class="rounded-md px-2.5 py-1 text-slate-500 hover:text-slate-800"
+                >90d</a
+              >
+            </nav>
+
+            <!-- Filtro de plataforma (Todas/IG/TikTok/YouTube): mismo patrón de enlaces
+                 con aria-current="page" que el selector de fechas, pero con estilo de píldora -->
+            <nav
+              aria-label="Filtro de plataforma"
+              class="hidden items-center gap-1 lg:flex"
+            >
+              <a
+                href="?plataforma=todas"
+                aria-current="page"
+                class="rounded-full border border-transparent px-3 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 aria-[current=page]:border-brand aria-[current=page]:bg-brand aria-[current=page]:text-white"
+                >Todas</a
+              >
+              <a
+                href="?plataforma=ig"
+                class="rounded-full border border-transparent px-3 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100"
+                >IG</a
+              >
+              <a
+                href="?plataforma=tiktok"
+                class="rounded-full border border-transparent px-3 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100"
+                >TikTok</a
+              >
+              <a
+                href="?plataforma=youtube"
+                class="rounded-full border border-transparent px-3 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100"
+                >YouTube</a
+              >
+            </nav>
+
+            <!-- Botón de alertas: icono de campana + badge circular rojo con el número
+                 de alertas sin leer (posicionado con absolute -right/-top sobre el botón) -->
+            <button
+              type="button"
+              aria-label="Ver alertas"
+              class="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                aria-hidden="true"
+                class="h-5 w-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+                />
+              </svg>
+              <span
+                class="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-negative text-[10px] font-semibold text-white"
+                >3</span
+              >
+            </button>
+
+            <!-- Menú de usuario: <details>/<summary> nativos del navegador funcionan como
+                 un desplegable accesible sin JavaScript — al hacer clic en el <summary>
+                 (el avatar), el <details> se abre y muestra el panel con los enlaces -->
+            <details class="relative">
+              <summary
+                aria-label="Menú de usuario: Diego Reynoso"
+                class="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-600 [&::-webkit-details-marker]:hidden"
+              >
+                <span aria-hidden="true">DR</span>
+              </summary>
+              <div
+                class="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+              >
+                <a
+                  href="#"
+                  class="block rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                  >Perfil</a
+                >
+                <a
+                  href="#"
+                  class="block rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                  >Ajustes</a
+                >
+                <a
+                  href="#"
+                  class="block rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                  >Exportar reporte</a
+                >
+              </div>
+            </details>
+          </div>
+        </div>
+      </header>
+
+      <!-- Fila: SIDEBAR + MAIN, ocupa el resto del alto disponible (flex-1) -->
+      <div class="flex flex-1">
+        <!-- SIDEBAR de escritorio: oculto por defecto (hidden) y solo se muestra desde el
+             breakpoint lg (lg:flex); en pantallas menores se usa el drawer definido al
+             inicio del <body>. lg:sticky + lg:top-16 lo fija bajo el navbar (16 = h-16)
+             y lg:h-[calc(100vh-4rem)] hace que su propio contenido scrollee si es muy largo -->
+        <aside
+          class="hidden shrink-0 border-r border-slate-200 bg-white lg:sticky lg:top-16 lg:flex lg:h-[calc(100vh-4rem)] lg:w-64 lg:flex-col"
+        >
+          <nav
+            aria-label="Navegación principal"
+            class="flex-1 space-y-1 overflow-y-auto p-3"
+          >
+            <a
+              href="#"
+              aria-current="page"
+              class="flex items-center gap-3 rounded-lg bg-brand/10 px-3 py-2 text-sm font-medium text-brand"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                aria-hidden="true"
+                class="h-5 w-5 shrink-0"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+                />
+              </svg>
+              <span>Resumen general</span>
+            </a>
+            <a
+              href="#"
+              class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                aria-hidden="true"
+                class="h-5 w-5 shrink-0"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
+                />
+              </svg>
+              <span>Rendimiento</span>
+            </a>
+            <a
+              href="#"
+              class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                aria-hidden="true"
+                class="h-5 w-5 shrink-0"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+                />
+              </svg>
+              <span>Productos</span>
+            </a>
+            <a
+              href="#"
+              class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                aria-hidden="true"
+                class="h-5 w-5 shrink-0"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418"
+                />
+              </svg>
+              <span>Plataformas</span>
+            </a>
+            <a
+              href="#"
+              class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                aria-hidden="true"
+                class="h-5 w-5 shrink-0"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.282m3.102.069a18.03 18.03 0 0 1-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 0 1 8.835 2.535M10.34 6.66a23.847 23.847 0 0 0 8.835-2.535m0 0A23.74 23.74 0 0 0 18.795 3m.38 1.125a23.91 23.91 0 0 1 1.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 0 0 1.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 0 1 0 3.46"
+                />
+              </svg>
+              <span>Campañas</span>
+            </a>
+            <a
+              href="#"
+              class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                aria-hidden="true"
+                class="h-5 w-5 shrink-0"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+                />
+              </svg>
+              <span>Alertas</span>
+            </a>
+          </nav>
+        </aside>
+
+        <!-- MAIN: contenido central de la página, destino del skip link (por eso
+             tiene id="main-content" y tabindex="-1", para poder recibir el foco).
+             Desde el breakpoint 2xl gana su propio alto fijo y scroll interno
+             (2xl:h-[calc(100vh-4rem)] 2xl:overflow-y-auto); en pantallas más pequeñas
+             simplemente crece con el contenido y el scroll es el de toda la página -->
+        <main
+          id="main-content"
+          tabindex="-1"
+          class="flex min-w-0 flex-1 flex-col 2xl"
+        >
+          <div class="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">
+            <!-- Bloque Superior: rejilla de tarjetas KPI (indicadores clave) agrupadas
+                 por categoría. Cada tarjeta sigue la misma anatomía: icono con fondo
+                 circular, píldora de variación (verde = positive, roja = negative, con
+                 flecha arriba/abajo), el valor grande en negrita y la etiqueta descriptiva
+                 debajo. Son datos estáticos de ejemplo, no vienen de una API -->
+            <section class="mb-8">
+              <header class="mb-4 flex items-end justify-between 2xl:mb-2">
+                <div>
+                  <h2 class="text-lg font-semibold text-slate-800 2xl:text-sm">
+                    Indicadores principales
+                  </h2>
+                  <p class="text-sm text-slate-500 2xl:text-[10px]">
+                    El vistazo de 5 segundos — variación vs. periodo anterior
+                  </p>
+                </div>
+              </header>
+
+              <!-- Grupo: Volumen — cuántas ventas, inscripciones, usuarios activos
+                   e impresiones se generaron en el periodo -->
+              <div class="mb-6 2xl:mb-2">
+                <h3
+                  class="mb-3 text-sm font-semibold text-slate-600 2xl:mb-1 2xl:text-[10px]"
+                >
+                  Volumen
+                </h3>
+                <div
+                  class="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6 2xl:gap-2"
+                >
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +8,2%
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      1.284
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">Ventas</p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +14,6%
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      3.540
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Inscripciones
+                    </p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +5,1%
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      12.904
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Usuarios activos
+                    </p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +21,3%
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      2,4 M
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Impresiones
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grupo: Ingresos — dinero generado: revenue total, comisiones (15%),
+                   MRR (ingreso recurrente mensual) y precio medio de venta -->
+              <div class="mb-6 2xl:mb-2">
+                <h3
+                  class="mb-3 text-sm font-semibold text-slate-600 2xl:mb-1 2xl:text-[10px]"
+                >
+                  Ingresos
+                </h3>
+                <div
+                  class="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6 2xl:gap-2"
+                >
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 2.25 15H1.5m9-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +11,4%
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      48.750 €
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Revenue
+                    </p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 2.25 15H1.5m9-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +11,4%
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      7.313 €
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Comisiones (15%)
+                    </p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 2.25 15H1.5m9-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +6,8%
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      15.200 €
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">MRR</p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 2.25 15H1.5m9-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-negative/10 px-2 py-0.5 text-xs font-medium text-negative"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                          />
+                        </svg>
+                        -2,1%
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      38 €
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Precio medio de venta
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grupo: Engagement — qué tan bien responde la audiencia al contenido:
+                   tasa de engagement, interacciones totales y conversión clic → lead -->
+              <div class="mb-6 2xl:mb-2">
+                <h3
+                  class="mb-3 text-sm font-semibold text-slate-600 2xl:mb-1 2xl:text-[10px]"
+                >
+                  Engagement
+                </h3>
+                <div
+                  class="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6 2xl:gap-2"
+                >
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +0,9 pp
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      6,8%
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Tasa de engagement
+                    </p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +18,7%
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      184.230
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Interacciones totales
+                    </p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +0,4 pp
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      3,2%
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Tasa de conversión (clic → lead)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grupo: Retención — cuánto se quedan los clientes: churn (tasa de
+                   abandono), permanencia media y tasa de compleción de la oferta/servicio -->
+              <div class="mb-6 2xl:mb-2">
+                <h3
+                  class="mb-3 text-sm font-semibold text-slate-600 2xl:mb-1 2xl:text-[10px]"
+                >
+                  Retención
+                </h3>
+                <div
+                  class="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6 2xl:gap-2"
+                >
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                          />
+                        </svg>
+                        -0,6 pp
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      4,1%
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">Churn</p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +5 días
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      87 días
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Permanencia
+                    </p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +3,5 pp
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      72%
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Tasa de compleción
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grupo: Rendimiento — eficacia del embudo de marketing: conversiones
+                   totales, CTR (clic-through rate) y conversión lead → venta -->
+              <div class="mb-6 2xl:mb-2">
+                <h3
+                  class="mb-3 text-sm font-semibold text-slate-600 2xl:mb-1 2xl:text-[10px]"
+                >
+                  Rendimiento
+                </h3>
+                <div
+                  class="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6 2xl:gap-2"
+                >
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +9,3%
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      1.412
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Conversiones totales
+                    </p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +0,3 pp
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      2,6%
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">CTR</p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-negative/10 px-2 py-0.5 text-xs font-medium text-negative"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                          />
+                        </svg>
+                        -0,2 pp
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      3,2%
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Tasa de conversión (lead → venta)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grupo: Satisfacción — percepción del cliente: NPS (Net Promoter Score,
+                   probabilidad de recomendación) y CSAT (satisfacción sobre 5) -->
+              <div class="mb-6 2xl:mb-2">
+                <h3
+                  class="mb-3 text-sm font-semibold text-slate-600 2xl:mb-1 2xl:text-[10px]"
+                >
+                  Satisfacción
+                </h3>
+                <div
+                  class="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6 2xl:gap-2"
+                >
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-13.5-3h.008v.008H7.5V9Zm9 0h.008v.008H16.5V9Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +4 pts
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      62
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">NPS</p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-13.5-3h.008v.008H7.5V9Zm9 0h.008v.008H16.5V9Z"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +0,1
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      4,6/5
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">CSAT</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grupo: Eficiencia — cuánto cuesta y cuánto rinde la operación: coste
+                   por resultado, margen y tiempo medio de respuesta al cliente -->
+              <div>
+                <h3
+                  class="mb-3 text-sm font-semibold text-slate-600 2xl:mb-1 2xl:text-[10px]"
+                >
+                  Eficiencia
+                </h3>
+                <div
+                  class="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6 2xl:gap-2"
+                >
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                          />
+                        </svg>
+                        -8,4%
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      3,10 €
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Coste por resultado
+                    </p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 15.75l7.5-7.5 7.5 7.5"
+                          />
+                        </svg>
+                        +2,1 pp
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      68%
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">Margen</p>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <span
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand 2xl:h-6 2xl:w-6"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
+                          />
+                        </svg>
+                      </span>
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          aria-hidden="true"
+                          class="h-3 w-3"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                          />
+                        </svg>
+                        -12 min
+                      </span>
+                    </div>
+                    <p
+                      class="mt-4 text-2xl font-bold text-slate-800 2xl:mt-1 2xl:text-base"
+                    >
+                      2,4 h
+                    </p>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Tiempo medio de respuesta
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Bloque Intermedio — Drivers: tarjetas más grandes con gráficas explicando
+                 "por qué" los KPIs de arriba son como son. No se usa ninguna librería de
+                 gráficos JS: cada gráfica está construida con SVG a mano, con la librería
+                 Charts.css (tablas <table> semánticas estilizadas como barras) o con
+                 trucos de CSS puro (conic-gradient para los donuts). Cada tarjeta tiene
+                 un menú "..." (<details>/<summary>) con acciones de ver detalle/exportar -->
+            <section class="mb-8">
+              <header class="mb-4 flex items-end justify-between 2xl:mb-2">
+                <div>
+                  <h2 class="text-lg font-semibold text-slate-800 2xl:text-sm">
+                    Drivers de rendimiento
+                  </h2>
+                  <p class="text-sm text-slate-500 2xl:text-[10px]">
+                    Factores que explican el resultado — últimos 30 días
+                  </p>
+                </div>
+              </header>
+
+              <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:gap-3">
+                <!-- Widget 1: Funnel de ventas (ancho completo, lg:col-span-2). El embudo
+                     se dibuja con 4 <polygon> de SVG (trapecios decrecientes), cada uno
+                     con un <title> que muestra el dato exacto al pasar el mouse. Debajo,
+                     una rejilla de 4 columnas repite esos mismos números en texto plano
+                     para quien no pueda ver o interpretar la gráfica -->
+                <div
+                  class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3 lg:col-span-2"
+                >
+                  <div class="mb-4 flex items-start justify-between 2xl:mb-2">
+                    <div>
+                      <h3
+                        class="text-base font-semibold text-slate-800 2xl:text-xs"
+                      >
+                        Funnel de ventas
+                      </h3>
+                      <p class="text-sm text-slate-500 2xl:text-[10px]">
+                        Impresión → Clic → Lead → Venta · últimos 30 días
+                      </p>
+                    </div>
+                    <details class="relative">
+                      <summary
+                        aria-label="Más opciones del widget"
+                        class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 [&::-webkit-details-marker]:hidden"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            d="M4.5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"
+                          />
+                        </svg>
+                      </summary>
+                      <div
+                        class="absolute right-0 z-10 mt-1 w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+                      >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Ver detalle</a
+                        >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Exportar</a
+                        >
+                      </div>
+                    </details>
+                  </div>
+
+                  <svg
+                    viewBox="0 0 400 190"
+                    role="img"
+                    aria-labelledby="funnel-title"
+                    class="mx-auto h-48 w-full max-w-md 2xl:h-28"
+                  >
+                    <title id="funnel-title">
+                      Funnel de ventas: impresiones, clics, leads y ventas
+                    </title>
+                    <polygon
+                      points="20,0 380,0 340,42 60,42"
+                      class="fill-brand"
+                    >
+                      <title>Impresiones: 48.500</title>
+                    </polygon>
+                    <polygon
+                      points="60,48 340,48 290,90 110,90"
+                      class="fill-brand/75"
+                    >
+                      <title>Clics: 3.120 (6,4% CTR)</title>
+                    </polygon>
+                    <polygon
+                      points="110,96 290,96 250,138 150,138"
+                      class="fill-brand/50"
+                    >
+                      <title>Leads: 780 (25,0% de clics)</title>
+                    </polygon>
+                    <polygon
+                      points="150,144 250,144 250,186 150,186"
+                      class="fill-positive"
+                    >
+                      <title>Ventas: 214 (27,4% de leads)</title>
+                    </polygon>
+                  </svg>
+
+                  <div
+                    class="mt-4 grid grid-cols-2 gap-3 text-center sm:grid-cols-4"
+                  >
+                    <div>
+                      <p
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                      >
+                        48.500
+                      </p>
+                      <p class="text-xs text-slate-500">Impresiones</p>
+                    </div>
+                    <div>
+                      <p
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                      >
+                        3.120
+                      </p>
+                      <p class="text-xs text-slate-500">Clics · 6,4%</p>
+                    </div>
+                    <div>
+                      <p
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                      >
+                        780
+                      </p>
+                      <p class="text-xs text-slate-500">Leads · 25,0%</p>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-positive">214</p>
+                      <p class="text-xs text-slate-500">Ventas · 27,4%</p>
+                    </div>
+                  </div>
+
+                  <div
+                    class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500"
+                  >
+                    <span>Conversión total (impresión → venta)</span>
+                    <span class="font-semibold text-slate-800">0,44%</span>
+                  </div>
+                </div>
+
+                <!-- Widget 2: Rendimiento por plataforma. Gráfica de barras agrupadas
+                     hecha con Charts.css: una <table> normal (fila por plataforma, celda
+                     por serie) a la que la clase "charts-css column multiple" convierte
+                     visualmente en barras, usando --size (0 a 1, la altura relativa) y
+                     --color (color de la barra) como variables CSS en cada <td>.
+                     Debajo se listan a mano los ROI (retorno de inversión) por plataforma -->
+                <div
+                  class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                >
+                  <div class="mb-4 flex items-start justify-between 2xl:mb-2">
+                    <div>
+                      <h3
+                        class="text-base font-semibold text-slate-800 2xl:text-xs"
+                      >
+                        Rendimiento por plataforma
+                      </h3>
+                      <p class="text-sm text-slate-500 2xl:text-[10px]">
+                        Ingresos vs. coste · ROI
+                      </p>
+                    </div>
+                    <details class="relative">
+                      <summary
+                        aria-label="Más opciones del widget"
+                        class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 [&::-webkit-details-marker]:hidden"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            d="M4.5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"
+                          />
+                        </svg>
+                      </summary>
+                      <div
+                        class="absolute right-0 z-10 mt-1 w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+                      >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Ver detalle</a
+                        >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Exportar</a
+                        >
+                      </div>
+                    </details>
+                  </div>
+
+                  <div class="overflow-x-auto">
+                    <table
+                      class="charts-css column multiple show-labels show-primary-axis w-full min-w-[280px]"
+                      style="height: 180px; --color-2: var(--color-slate-300)"
+                    >
+                      <caption class="show-heading sr-only">
+                        Rendimiento por plataforma: ingresos frente a coste
+                        (normalizado sobre 900€)
+                      </caption>
+                      <tbody>
+                        <tr>
+                          <th scope="row">IG</th>
+                          <td style="--size: 0.69; --color: var(--color-ig)">
+                            <span class="data">620 €</span>
+                          </td>
+                          <td style="--size: 0.2">
+                            <span class="data">180 €</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">TikTok</th>
+                          <td
+                            style="--size: 0.99; --color: var(--color-tiktok)"
+                          >
+                            <span class="data">890 €</span>
+                          </td>
+                          <td style="--size: 0.23">
+                            <span class="data">210 €</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">YouTube</th>
+                          <td
+                            style="--size: 0.46; --color: var(--color-youtube)"
+                          >
+                            <span class="data">410 €</span>
+                          </td>
+                          <td style="--size: 0.17">
+                            <span class="data">150 €</span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div
+                    class="mt-3 flex items-center justify-center gap-4 text-[11px] font-semibold"
+                  >
+                    <span class="text-ig">IG · ROI 3,4x</span>
+                    <span class="text-tiktok">TikTok · ROI 4,2x</span>
+                    <span class="text-youtube">YouTube · ROI 2,7x</span>
+                  </div>
+
+                  <div
+                    class="mt-3 flex items-center justify-center gap-4 border-t border-slate-100 pt-3 text-xs text-slate-500"
+                  >
+                    <span class="inline-flex items-center gap-1.5"
+                      ><span class="h-2 w-2 rounded-full bg-slate-400"></span
+                      >Ingresos</span
+                    >
+                    <span class="inline-flex items-center gap-1.5"
+                      ><span class="h-2 w-2 rounded-full bg-slate-300"></span
+                      >Coste</span
+                    >
+                  </div>
+                </div>
+
+                <!-- Widget 3: Rendimiento por producto. Misma técnica que el widget 2
+                     (tabla + Charts.css) pero con una sola serie por producto (columna
+                     simple, no agrupada): la comisión generada (15%) por cada producto -->
+                <div
+                  class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                >
+                  <div class="mb-4 flex items-start justify-between 2xl:mb-2">
+                    <div>
+                      <h3
+                        class="text-base font-semibold text-slate-800 2xl:text-xs"
+                      >
+                        Rendimiento por producto
+                      </h3>
+                      <p class="text-sm text-slate-500 2xl:text-[10px]">
+                        Comisiones generadas (15%) · A 50€ · B 120€ · C 80€
+                      </p>
+                    </div>
+                    <details class="relative">
+                      <summary
+                        aria-label="Más opciones del widget"
+                        class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 [&::-webkit-details-marker]:hidden"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            d="M4.5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"
+                          />
+                        </svg>
+                      </summary>
+                      <div
+                        class="absolute right-0 z-10 mt-1 w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+                      >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Ver detalle</a
+                        >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Exportar</a
+                        >
+                      </div>
+                    </details>
+                  </div>
+
+                  <div class="overflow-x-auto">
+                    <table
+                      class="charts-css column show-labels show-primary-axis w-full min-w-[220px]"
+                      style="height: 180px"
+                    >
+                      <caption class="show-heading sr-only">
+                        Comisión generada por producto (15% de comisión)
+                      </caption>
+                      <tbody>
+                        <tr>
+                          <th scope="row">Producto A</th>
+                          <td style="--size: 0.97; --color: var(--color-brand)">
+                            <span class="data">1.050 €</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Producto B</th>
+                          <td
+                            style="
+                              --size: 0.75;
+                              --color: var(--color-slate-400);
+                            "
+                          >
+                            <span class="data">810 €</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Producto C</th>
+                          <td style="--size: 1; --color: var(--color-positive)">
+                            <span class="data">1.080 €</span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div
+                    class="mt-3 flex items-center justify-center gap-4 text-[11px] font-semibold text-slate-500"
+                  >
+                    <span>A · conv. 3,8%</span>
+                    <span>B · conv. 2,1%</span>
+                    <span class="text-positive">C · conv. 3,1%</span>
+                  </div>
+
+                  <div
+                    class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500"
+                  >
+                    <span
+                      >Barras: comisión generada · etiqueta: comisión · tasa de
+                      conversión</span
+                    >
+                  </div>
+                </div>
+
+                <!-- Widget 4: Calidad. Tres "donuts" de progreso hechos sin SVG: cada
+                     círculo es un <div> con background: conic-gradient(color X%, gris el
+                     resto), y encima un círculo blanco más pequeño centrado que tapa el
+                     centro y muestra el porcentaje en texto -->
+                <div
+                  class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                >
+                  <div class="mb-4 flex items-start justify-between 2xl:mb-2">
+                    <div>
+                      <h3
+                        class="text-base font-semibold text-slate-800 2xl:text-xs"
+                      >
+                        Calidad
+                      </h3>
+                      <p class="text-sm text-slate-500 2xl:text-[10px]">
+                        Leads, campañas y contenido
+                      </p>
+                    </div>
+                    <details class="relative">
+                      <summary
+                        aria-label="Más opciones del widget"
+                        class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 [&::-webkit-details-marker]:hidden"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            d="M4.5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"
+                          />
+                        </svg>
+                      </summary>
+                      <div
+                        class="absolute right-0 z-10 mt-1 w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+                      >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Ver detalle</a
+                        >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Exportar</a
+                        >
+                      </div>
+                    </details>
+                  </div>
+
+                  <div class="flex items-center justify-around gap-2 py-2">
+                    <div class="flex flex-col items-center gap-2">
+                      <div
+                        class="relative flex h-20 w-20 items-center justify-center rounded-full 2xl:h-14 2xl:w-14"
+                        style="
+                          background: conic-gradient(
+                            var(--color-brand) 72%,
+                            var(--color-slate-200) 0
+                          );
+                        "
+                      >
+                        <div
+                          class="flex h-14 w-14 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-800 2xl:h-10 2xl:w-10 2xl:text-xs"
+                        >
+                          72%
+                        </div>
+                      </div>
+                      <span class="max-w-20 text-center text-xs text-slate-500"
+                        >Leads cualificados</span
+                      >
+                    </div>
+                    <div class="flex flex-col items-center gap-2">
+                      <div
+                        class="relative flex h-20 w-20 items-center justify-center rounded-full 2xl:h-14 2xl:w-14"
+                        style="
+                          background: conic-gradient(
+                            var(--color-positive) 88%,
+                            var(--color-slate-200) 0
+                          );
+                        "
+                      >
+                        <div
+                          class="flex h-14 w-14 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-800 2xl:h-10 2xl:w-10 2xl:text-xs"
+                        >
+                          88%
+                        </div>
+                      </div>
+                      <span class="max-w-20 text-center text-xs text-slate-500"
+                        >Campañas completadas</span
+                      >
+                    </div>
+                    <div class="flex flex-col items-center gap-2">
+                      <div
+                        class="relative flex h-20 w-20 items-center justify-center rounded-full 2xl:h-14 2xl:w-14"
+                        style="
+                          background: conic-gradient(
+                            var(--color-warning) 91%,
+                            var(--color-slate-200) 0
+                          );
+                        "
+                      >
+                        <div
+                          class="flex h-14 w-14 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-800 2xl:h-10 2xl:w-10 2xl:text-xs"
+                        >
+                          91%
+                        </div>
+                      </div>
+                      <span class="max-w-20 text-center text-xs text-slate-500"
+                        >Contenido aprobado</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Widget 5: Actividad. Gráfica de barras apiladas (Charts.css con
+                     "multiple stacked": cada fila/plataforma suma sus 3 series — posts,
+                     stories y videos/reels — en una sola barra dividida por colores).
+                     hide-data oculta las etiquetas numéricas sobre la barra porque ya
+                     están detalladas en la tabla normal de abajo (posts/stories/videos/total) -->
+                <div
+                  class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                >
+                  <div class="mb-4 flex items-start justify-between 2xl:mb-2">
+                    <div>
+                      <h3
+                        class="text-base font-semibold text-slate-800 2xl:text-xs"
+                      >
+                        Actividad
+                      </h3>
+                      <p class="text-sm text-slate-500 2xl:text-[10px]">
+                        Posts · stories · videos/reels por plataforma
+                      </p>
+                    </div>
+                    <details class="relative">
+                      <summary
+                        aria-label="Más opciones del widget"
+                        class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 [&::-webkit-details-marker]:hidden"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            d="M4.5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"
+                          />
+                        </svg>
+                      </summary>
+                      <div
+                        class="absolute right-0 z-10 mt-1 w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+                      >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Ver detalle</a
+                        >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Exportar</a
+                        >
+                      </div>
+                    </details>
+                  </div>
+
+                  <div class="overflow-x-auto">
+                    <table
+                      class="charts-css column multiple stacked show-labels show-primary-axis hide-data w-full min-w-[220px]"
+                      style="
+                        height: 220px;
+                        --color-1: var(--color-slate-700);
+                        --color-2: var(--color-slate-400);
+                        --color-3: var(--color-brand);
+                      "
+                    >
+                      <caption class="show-heading sr-only">
+                        Actividad publicada por plataforma: posts, stories y
+                        videos/reels
+                      </caption>
+                      <tbody>
+                        <tr>
+                          <th scope="row" class="text-ig">IG</th>
+                          <td style="--size: 0.24">
+                            <span class="data">Posts: 12</span>
+                          </td>
+                          <td style="--size: 0.56">
+                            <span class="data">Stories: 28</span>
+                          </td>
+                          <td style="--size: 0.2">
+                            <span class="data">Videos/Reels: 10</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row" class="text-tiktok">TikTok</th>
+                          <td style="--size: 0.04">
+                            <span class="data">Posts: 2</span>
+                          </td>
+                          <td style="--size: 0.12">
+                            <span class="data">Stories: 6</span>
+                          </td>
+                          <td style="--size: 0.36">
+                            <span class="data">Videos/Reels: 18</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row" class="text-youtube">YouTube</th>
+                          <td style="--size: 0.06">
+                            <span class="data">Posts: 3</span>
+                          </td>
+                          <td style="--size: 0.04">
+                            <span class="data">Stories: 2</span>
+                          </td>
+                          <td style="--size: 0.22">
+                            <span class="data">Videos/Reels: 11</span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div class="mt-3 overflow-x-auto">
+                    <table
+                      class="mx-auto w-full max-w-md text-center text-[11px]"
+                    >
+                      <caption class="sr-only">
+                        Desglose de piezas de contenido por plataforma y tipo
+                      </caption>
+                      <thead class="text-slate-400">
+                        <tr>
+                          <th
+                            scope="col"
+                            class="px-2 py-1 text-left font-medium"
+                          >
+                            Plataforma
+                          </th>
+                          <th scope="col" class="px-2 py-1 font-medium">
+                            Posts
+                          </th>
+                          <th scope="col" class="px-2 py-1 font-medium">
+                            Stories
+                          </th>
+                          <th scope="col" class="px-2 py-1 font-medium">
+                            Videos/Reels
+                          </th>
+                          <th scope="col" class="px-2 py-1 font-medium">
+                            Total
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100 text-slate-600">
+                        <tr>
+                          <th
+                            scope="row"
+                            class="px-2 py-1 text-left font-medium text-ig"
+                          >
+                            IG
+                          </th>
+                          <td class="px-2 py-1">12</td>
+                          <td class="px-2 py-1">28</td>
+                          <td class="px-2 py-1">10</td>
+                          <td class="px-2 py-1 font-semibold text-slate-800">
+                            50
+                          </td>
+                        </tr>
+                        <tr>
+                          <th
+                            scope="row"
+                            class="px-2 py-1 text-left font-medium text-tiktok"
+                          >
+                            TikTok
+                          </th>
+                          <td class="px-2 py-1">2</td>
+                          <td class="px-2 py-1">6</td>
+                          <td class="px-2 py-1">18</td>
+                          <td class="px-2 py-1 font-semibold text-slate-800">
+                            26
+                          </td>
+                        </tr>
+                        <tr>
+                          <th
+                            scope="row"
+                            class="px-2 py-1 text-left font-medium text-youtube"
+                          >
+                            YouTube
+                          </th>
+                          <td class="px-2 py-1">3</td>
+                          <td class="px-2 py-1">2</td>
+                          <td class="px-2 py-1">11</td>
+                          <td class="px-2 py-1 font-semibold text-slate-800">
+                            16
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div
+                    class="mt-3 flex items-center justify-center gap-4 border-t border-slate-100 pt-3 text-xs text-slate-500"
+                  >
+                    <span class="inline-flex items-center gap-1.5"
+                      ><span class="h-2 w-2 rounded-full bg-slate-700"></span
+                      >Posts</span
+                    >
+                    <span class="inline-flex items-center gap-1.5"
+                      ><span class="h-2 w-2 rounded-full bg-slate-400"></span
+                      >Stories</span
+                    >
+                    <span class="inline-flex items-center gap-1.5"
+                      ><span class="h-2 w-2 rounded-full bg-brand"></span
+                      >Videos/Reels</span
+                    >
+                  </div>
+                </div>
+
+                <!-- Widget 6: Engagement por plataforma (ancho completo, lg:col-span-2).
+                     Gráfica de radar/araña dibujada a mano en SVG: círculos concéntricos
+                     grises de fondo (guías), 4 líneas radiales que marcan los ejes (Likes,
+                     Comentarios, Compartidos, Guardados) y un <polygon> semitransparente
+                     por plataforma cuyos vértices se calcularon manualmente según su valor
+                     en cada eje. La tabla de abajo repite esos mismos valores en texto -->
+                <div
+                  class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3 lg:col-span-2"
+                >
+                  <div class="mb-4 flex items-start justify-between 2xl:mb-2">
+                    <div>
+                      <h3
+                        class="text-base font-semibold text-slate-800 2xl:text-xs"
+                      >
+                        Engagement por plataforma
+                      </h3>
+                      <p class="text-sm text-slate-500 2xl:text-[10px]">
+                        Likes · comentarios · compartidos · guardados (índice
+                        0–100)
+                      </p>
+                    </div>
+                    <details class="relative">
+                      <summary
+                        aria-label="Más opciones del widget"
+                        class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 [&::-webkit-details-marker]:hidden"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            d="M4.5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"
+                          />
+                        </svg>
+                      </summary>
+                      <div
+                        class="absolute right-0 z-10 mt-1 w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+                      >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Ver detalle</a
+                        >
+                        <a
+                          href="#"
+                          class="block rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                          >Exportar</a
+                        >
+                      </div>
+                    </details>
+                  </div>
+
+                  <svg
+                    viewBox="-50 -20 300 240"
+                    role="img"
+                    aria-labelledby="radar-title"
+                    class="mx-auto h-56 w-56"
+                  >
+                    <title id="radar-title">
+                      Engagement por plataforma: likes, comentarios, compartidos
+                      y guardados
+                    </title>
+                    <!-- Rings de referencia -->
+                    <polygon
+                      points="100,40 160,100 100,160 40,100"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1"
+                      class="text-slate-200"
+                    />
+                    <polygon
+                      points="100,60 140,100 100,140 60,100"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1"
+                      class="text-slate-200"
+                    />
+                    <polygon
+                      points="100,80 120,100 100,120 80,100"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1"
+                      class="text-slate-200"
+                    />
+                    <!-- Ejes -->
+                    <line
+                      x1="100"
+                      y1="100"
+                      x2="100"
+                      y2="20"
+                      stroke="currentColor"
+                      stroke-width="1"
+                      class="text-slate-300"
+                    />
+                    <line
+                      x1="100"
+                      y1="100"
+                      x2="180"
+                      y2="100"
+                      stroke="currentColor"
+                      stroke-width="1"
+                      class="text-slate-300"
+                    />
+                    <line
+                      x1="100"
+                      y1="100"
+                      x2="100"
+                      y2="180"
+                      stroke="currentColor"
+                      stroke-width="1"
+                      class="text-slate-300"
+                    />
+                    <line
+                      x1="100"
+                      y1="100"
+                      x2="20"
+                      y2="100"
+                      stroke="currentColor"
+                      stroke-width="1"
+                      class="text-slate-300"
+                    />
+                    <!-- Polígonos por plataforma -->
+                    <polygon
+                      points="100,56 152,100 100,124 68,100"
+                      stroke-width="2"
+                      class="fill-youtube/15 stroke-youtube"
+                    >
+                      <title>
+                        YouTube — Likes 55, Comentarios 65, Compartidos 30,
+                        Guardados 40
+                      </title>
+                    </polygon>
+                    <polygon
+                      points="100,32 148,100 100,136 44,100"
+                      stroke-width="2"
+                      class="fill-ig/15 stroke-ig"
+                    >
+                      <title>
+                        Instagram — Likes 85, Comentarios 60, Compartidos 45,
+                        Guardados 70
+                      </title>
+                    </polygon>
+                    <polygon
+                      points="100,24 164,100 100,172 60,100"
+                      stroke-width="2"
+                      class="fill-tiktok/15 stroke-tiktok"
+                    >
+                      <title>
+                        TikTok — Likes 95, Comentarios 80, Compartidos 90,
+                        Guardados 50
+                      </title>
+                    </polygon>
+                    <!-- Etiquetas de eje -->
+                    <text
+                      x="100"
+                      y="14"
+                      text-anchor="middle"
+                      class="fill-slate-500 text-[9px]"
+                    >
+                      Likes
+                    </text>
+                    <text
+                      x="186"
+                      y="103"
+                      text-anchor="start"
+                      class="fill-slate-500 text-[9px]"
+                    >
+                      Comentarios
+                    </text>
+                    <text
+                      x="100"
+                      y="194"
+                      text-anchor="middle"
+                      class="fill-slate-500 text-[9px]"
+                    >
+                      Compartidos
+                    </text>
+                    <text
+                      x="14"
+                      y="103"
+                      text-anchor="end"
+                      class="fill-slate-500 text-[9px]"
+                    >
+                      Guardados
+                    </text>
+                  </svg>
+
+                  <div
+                    class="mt-4 overflow-x-auto border-t border-slate-100 pt-3"
+                  >
+                    <table class="mx-auto w-full max-w-md text-center text-xs">
+                      <caption class="sr-only">
+                        Valores de engagement por plataforma (índice 0–100)
+                      </caption>
+                      <thead class="text-slate-400">
+                        <tr>
+                          <th
+                            scope="col"
+                            class="px-2 py-1 text-left font-medium"
+                          >
+                            Plataforma
+                          </th>
+                          <th scope="col" class="px-2 py-1 font-medium">
+                            Likes
+                          </th>
+                          <th scope="col" class="px-2 py-1 font-medium">
+                            Coment.
+                          </th>
+                          <th scope="col" class="px-2 py-1 font-medium">
+                            Compart.
+                          </th>
+                          <th scope="col" class="px-2 py-1 font-medium">
+                            Guard.
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100 text-slate-600">
+                        <tr>
+                          <th
+                            scope="row"
+                            class="px-2 py-1 text-left font-medium text-ig"
+                          >
+                            Instagram
+                          </th>
+                          <td class="px-2 py-1">85</td>
+                          <td class="px-2 py-1">60</td>
+                          <td class="px-2 py-1">45</td>
+                          <td class="px-2 py-1">70</td>
+                        </tr>
+                        <tr>
+                          <th
+                            scope="row"
+                            class="px-2 py-1 text-left font-medium text-tiktok"
+                          >
+                            TikTok
+                          </th>
+                          <td class="px-2 py-1">95</td>
+                          <td class="px-2 py-1">80</td>
+                          <td class="px-2 py-1">90</td>
+                          <td class="px-2 py-1">50</td>
+                        </tr>
+                        <tr>
+                          <th
+                            scope="row"
+                            class="px-2 py-1 text-left font-medium text-youtube"
+                          >
+                            YouTube
+                          </th>
+                          <td class="px-2 py-1">55</td>
+                          <td class="px-2 py-1">65</td>
+                          <td class="px-2 py-1">30</td>
+                          <td class="px-2 py-1">40</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Bloque Inferior — Detalles operacionales: el detalle "en crudo" detrás
+                 de los KPIs y gráficas de arriba, en forma de tablas de datos, alertas
+                 automáticas y rankings con pestañas -->
+            <section class="mb-8">
+              <header class="mb-4 flex items-end justify-between 2xl:mb-2">
+                <div>
+                  <h2 class="text-lg font-semibold text-slate-800 2xl:text-sm">
+                    Detalles operacionales
+                  </h2>
+                  <p class="text-sm text-slate-500 2xl:text-[10px]">
+                    Tablas, alertas y rankings — últimos 30 días
+                  </p>
+                </div>
+              </header>
+
+              <!-- Tabla de Productos: precio, unidades vendidas, comisión generada (15%),
+                   conversión y ROI de cada producto (A, B, C). ROI en verde (positive)
+                   cuando supera cierto umbral, gris cuando es más bajo -->
+              <div
+                class="mb-6 w-full overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xs transition hover:shadow-sm 2xl:mb-3"
+              >
+                <table class="w-full min-w-[640px] text-sm">
+                  <caption class="sr-only">
+                    Rendimiento por producto: precio, unidades, comisión,
+                    conversión y ROI
+                  </caption>
+                  <thead
+                    class="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+                  >
+                    <tr>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Producto
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Precio
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Unidades
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Comisión generada (15%)
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Conversión
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        ROI
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-slate-800"
+                      >
+                        Producto A
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        50 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        140
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        1.050 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        3,8%
+                      </td>
+                      <td
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-semibold text-positive"
+                      >
+                        4,8x
+                      </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-slate-800"
+                      >
+                        Producto B
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        120 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        45
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        810 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        2,1%
+                      </td>
+                      <td
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-semibold text-slate-600"
+                      >
+                        2,6x
+                      </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-slate-800"
+                      >
+                        Producto C
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        80 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        90
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        1.080 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        3,1%
+                      </td>
+                      <td
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-semibold text-positive"
+                      >
+                        4,5x
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Tabla de Plataformas: alcance, engagement, conversiones, ingresos y ROI
+                   por red social (Instagram, TikTok, YouTube) -->
+              <div
+                class="mb-6 w-full overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xs transition hover:shadow-sm 2xl:mb-3"
+              >
+                <table class="w-full min-w-[640px] text-sm">
+                  <caption class="sr-only">
+                    Rendimiento por plataforma: alcance, engagement,
+                    conversiones, ingresos y ROI
+                  </caption>
+                  <thead
+                    class="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+                  >
+                    <tr>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Plataforma
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Alcance
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Engagement
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Conversiones
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Ingresos
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        ROI
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-ig"
+                      >
+                        Instagram
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        24.800
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        6,2%
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        68
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        620 €
+                      </td>
+                      <td
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-semibold text-slate-600"
+                      >
+                        3,4x
+                      </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-tiktok"
+                      >
+                        TikTok
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        18.200
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        8,9%
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        112
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        890 €
+                      </td>
+                      <td
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-semibold text-positive"
+                      >
+                        4,2x
+                      </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-youtube"
+                      >
+                        YouTube
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        5.500
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        4,1%
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        34
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        410 €
+                      </td>
+                      <td
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-semibold text-slate-600"
+                      >
+                        2,7x
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Tabla de Campañas: listado histórico con fechas, producto promocionado,
+                   plataforma, ventas y comisión de cada campaña. La columna Estado usa un
+                   badge de color: verde "Activa", gris "Finalizada", ámbar "Pausada" -->
+              <div
+                class="mb-6 w-full overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xs transition hover:shadow-sm 2xl:mb-3"
+              >
+                <table class="w-full min-w-[720px] text-sm">
+                  <caption class="sr-only">
+                    Campañas: fechas, productos promocionados, plataforma,
+                    resultados y estado
+                  </caption>
+                  <thead
+                    class="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+                  >
+                    <tr>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Campaña
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Fechas
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Producto
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Plataforma
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Ventas
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Comisión
+                      </th>
+                      <th scope="col" class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        Estado
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-slate-800"
+                      >
+                        Combo verano
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        5–20 jul
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        A + C
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        TikTok
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        58
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        1.131 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        <span
+                          class="inline-flex items-center rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                          >Activa</span
+                        >
+                      </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-slate-800"
+                      >
+                        Rutina de mañana
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        1–15 jul
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        B
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        IG + TikTok
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        22
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        396 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        <span
+                          class="inline-flex items-center rounded-full bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                          >Activa</span
+                        >
+                      </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-slate-800"
+                      >
+                        Rebajas flash 48h
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        10–12 jul
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        A
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        IG
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        31
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        232,5 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        <span
+                          class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+                          >Finalizada</span
+                        >
+                      </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-slate-800"
+                      >
+                        Colaboración marca X
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        22 jun–6 jul
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        B
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        TikTok + YouTube
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        19
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        342 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        <span
+                          class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+                          >Finalizada</span
+                        >
+                      </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-slate-800"
+                      >
+                        Unboxing edición limitada
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        20 jun–5 jul
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        C
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        YouTube
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        14
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        168 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        <span
+                          class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+                          >Finalizada</span
+                        >
+                      </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50">
+                      <th
+                        scope="row"
+                        class="px-4 py-3 2xl:px-2 2xl:py-1.5 font-medium text-slate-800"
+                      >
+                        Prueba de producto nuevo
+                      </th>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        8–14 jul
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        B
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        IG
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        3
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5 text-slate-600">
+                        54 €
+                      </td>
+                      <td class="px-4 py-3 2xl:px-2 2xl:py-1.5">
+                        <span
+                          class="inline-flex items-center rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
+                          >Pausada</span
+                        >
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Fila final a dos columnas: Panel de Alertas (izquierda) y Rankings con pestañas (derecha) -->
+              <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:gap-3">
+                <!-- Panel de Alertas: tarjetas apiladas que avisan de caídas, picos o
+                     anomalías detectadas. El color del borde/fondo/icono (negative,
+                     warning o positive) comunica la gravedad de cada alerta -->
+                <div
+                  class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                >
+                  <div class="mb-4">
+                    <h3
+                      class="text-base font-semibold text-slate-800 2xl:text-xs"
+                    >
+                      Alertas
+                    </h3>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Caídas, picos y anomalías detectadas
+                    </p>
+                  </div>
+
+                  <div class="space-y-3">
+                    <!-- Alerta danger -->
+                    <div
+                      class="flex items-start gap-3 rounded-xl border border-negative/20 bg-negative/5 p-4 2xl:p-2"
+                    >
+                      <span
+                        class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-negative/10 text-negative"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                          />
+                        </svg>
+                      </span>
+                      <div>
+                        <p
+                          class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >
+                          Caída de conversión en YouTube
+                        </p>
+                        <p class="text-sm text-slate-600 2xl:text-[10px]">
+                          La conversión bajó 18% esta semana frente al periodo
+                          anterior.
+                        </p>
+                      </div>
+                    </div>
+
+                    <!-- Alerta warning -->
+                    <div
+                      class="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/5 p-4 2xl:p-2"
+                    >
+                      <span
+                        class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                          />
+                        </svg>
+                      </span>
+                      <div>
+                        <p
+                          class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >
+                          Producto B por debajo del objetivo
+                        </p>
+                        <p class="text-sm text-slate-600 2xl:text-[10px]">
+                          Conversión de 2,1% frente al 3,5% esperado para este
+                          producto.
+                        </p>
+                      </div>
+                    </div>
+
+                    <!-- Alerta warning: campaña pausada -->
+                    <div
+                      class="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/5 p-4 2xl:p-2"
+                    >
+                      <span
+                        class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                          />
+                        </svg>
+                      </span>
+                      <div>
+                        <p
+                          class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >
+                          Campaña "Prueba de producto nuevo" pausada
+                        </p>
+                        <p class="text-sm text-slate-600 2xl:text-[10px]">
+                          Solo 3 ventas en 6 días — rendimiento muy por debajo
+                          del promedio.
+                        </p>
+                      </div>
+                    </div>
+
+                    <!-- Alerta positiva: pico -->
+                    <div
+                      class="flex items-start gap-3 rounded-xl border border-positive/20 bg-positive/5 p-4 2xl:p-2"
+                    >
+                      <span
+                        class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-positive/10 text-positive"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                          class="h-5 w-5"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"
+                          />
+                        </svg>
+                      </span>
+                      <div>
+                        <p
+                          class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >
+                          TikTok alcanzó su mejor ROI (4,2x)
+                        </p>
+                        <p class="text-sm text-slate-600 2xl:text-[10px]">
+                          Oportunidad para aumentar presupuesto en esta
+                          plataforma.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Rankings con pestañas 100% CSS (sin JS): 4 <input type="radio"> ocultos
+                     (uno por pestaña, mismo "name" para que sean mutuamente excluyentes)
+                     guardan cuál pestaña está activa. Los <label for="..."> de abajo son
+                     los botones visibles de pestaña; al hacer clic marcan su radio.
+                     Cada panel <ol> usa peer-checked/<nombre>:block para mostrarse solo
+                     cuando su radio correspondiente está marcado (el resto quedan hidden) -->
+                <div
+                  class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-sm 2xl:p-3"
+                >
+                  <div class="mb-4">
+                    <h3
+                      class="text-base font-semibold text-slate-800 2xl:text-xs"
+                    >
+                      Rankings
+                    </h3>
+                    <p class="text-sm text-slate-500 2xl:text-[10px]">
+                      Top 3 por categoría
+                    </p>
+                  </div>
+
+                  <input
+                    type="radio"
+                    name="ranking-tab"
+                    id="rank-productos"
+                    class="peer/productos hidden"
+                    checked
+                  />
+                  <input
+                    type="radio"
+                    name="ranking-tab"
+                    id="rank-plataformas"
+                    class="peer/plataformas hidden"
+                  />
+                  <input
+                    type="radio"
+                    name="ranking-tab"
+                    id="rank-campanas"
+                    class="peer/campanas hidden"
+                  />
+                  <input
+                    type="radio"
+                    name="ranking-tab"
+                    id="rank-oportunidades"
+                    class="peer/oportunidades hidden"
+                  />
+
+                  <div
+                    class="mb-4 flex gap-1 rounded-lg bg-slate-100 p-1 text-xs font-medium"
+                  >
+                    <label
+                      for="rank-productos"
+                      class="flex-1 cursor-pointer rounded-md px-2 py-1.5 text-center text-slate-500 peer-checked/productos:bg-white peer-checked/productos:text-slate-800 peer-checked/productos:shadow-xs"
+                      >Productos</label
+                    >
+                    <label
+                      for="rank-plataformas"
+                      class="flex-1 cursor-pointer rounded-md px-2 py-1.5 text-center text-slate-500 peer-checked/plataformas:bg-white peer-checked/plataformas:text-slate-800 peer-checked/plataformas:shadow-xs"
+                      >Plataformas</label
+                    >
+                    <label
+                      for="rank-campanas"
+                      class="flex-1 cursor-pointer rounded-md px-2 py-1.5 text-center text-slate-500 peer-checked/campanas:bg-white peer-checked/campanas:text-slate-800 peer-checked/campanas:shadow-xs"
+                      >Campañas</label
+                    >
+                    <label
+                      for="rank-oportunidades"
+                      class="flex-1 cursor-pointer rounded-md px-2 py-1.5 text-center text-slate-500 peer-checked/oportunidades:bg-white peer-checked/oportunidades:text-slate-800 peer-checked/oportunidades:shadow-xs"
+                      >Oportunidades</label
+                    >
+                  </div>
+
+                  <!-- Panel: Top productos (visible solo si #rank-productos está marcado,
+                       que es el valor por defecto gracias al atributo "checked") -->
+                  <ol class="hidden space-y-3 peer-checked/productos:block">
+                    <li class="flex items-center justify-between">
+                      <span
+                        class="flex items-center gap-2 text-sm text-slate-700"
+                        ><span
+                          class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
+                          >1</span
+                        >Producto C</span
+                      >
+                      <span
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >1.080 € · ROI 4,5x</span
+                      >
+                    </li>
+                    <li class="flex items-center justify-between">
+                      <span
+                        class="flex items-center gap-2 text-sm text-slate-700"
+                        ><span
+                          class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
+                          >2</span
+                        >Producto A</span
+                      >
+                      <span
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >1.050 € · ROI 4,8x</span
+                      >
+                    </li>
+                    <li class="flex items-center justify-between">
+                      <span
+                        class="flex items-center gap-2 text-sm text-slate-700"
+                        ><span
+                          class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
+                          >3</span
+                        >Producto B</span
+                      >
+                      <span
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >810 € · ROI 2,6x</span
+                      >
+                    </li>
+                  </ol>
+
+                  <!-- Panel: Top plataformas -->
+                  <ol class="hidden space-y-3 peer-checked/plataformas:block">
+                    <li class="flex items-center justify-between">
+                      <span
+                        class="flex items-center gap-2 text-sm text-slate-700"
+                        ><span
+                          class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
+                          >1</span
+                        >TikTok</span
+                      >
+                      <span
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >890 € · ROI 4,2x</span
+                      >
+                    </li>
+                    <li class="flex items-center justify-between">
+                      <span
+                        class="flex items-center gap-2 text-sm text-slate-700"
+                        ><span
+                          class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
+                          >2</span
+                        >Instagram</span
+                      >
+                      <span
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >620 € · ROI 3,4x</span
+                      >
+                    </li>
+                    <li class="flex items-center justify-between">
+                      <span
+                        class="flex items-center gap-2 text-sm text-slate-700"
+                        ><span
+                          class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
+                          >3</span
+                        >YouTube</span
+                      >
+                      <span
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >410 € · ROI 2,7x</span
+                      >
+                    </li>
+                  </ol>
+
+                  <!-- Panel: Top campañas -->
+                  <ol class="hidden space-y-3 peer-checked/campanas:block">
+                    <li class="flex items-center justify-between">
+                      <span
+                        class="flex items-center gap-2 text-sm text-slate-700"
+                        ><span
+                          class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
+                          >1</span
+                        >Combo verano</span
+                      >
+                      <span
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >1.131 € · 58 ventas</span
+                      >
+                    </li>
+                    <li class="flex items-center justify-between">
+                      <span
+                        class="flex items-center gap-2 text-sm text-slate-700"
+                        ><span
+                          class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
+                          >2</span
+                        >Rutina de mañana</span
+                      >
+                      <span
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >396 € · 22 ventas</span
+                      >
+                    </li>
+                    <li class="flex items-center justify-between">
+                      <span
+                        class="flex items-center gap-2 text-sm text-slate-700"
+                        ><span
+                          class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
+                          >3</span
+                        >Colaboración marca X</span
+                      >
+                      <span
+                        class="text-sm font-semibold text-slate-800 2xl:text-xs"
+                        >342 € · 19 ventas</span
+                      >
+                    </li>
+                  </ol>
+
+                  <!-- Panel: Oportunidades de mejora -->
+                  <ol class="hidden space-y-3 peer-checked/oportunidades:block">
+                    <li class="flex items-start gap-2">
+                      <span
+                        class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-negative/10 text-xs font-semibold text-negative"
+                        >!</span
+                      >
+                      <span class="text-sm text-slate-700 2xl:text-xs"
+                        >YouTube: conversión cayó 18% — revisar guion y
+                        CTA.</span
+                      >
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span
+                        class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-warning/10 text-xs font-semibold text-warning"
+                        >!</span
+                      >
+                      <span class="text-sm text-slate-700 2xl:text-xs"
+                        >Producto B: conversión 2,1% vs. 3,5% esperado.</span
+                      >
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span
+                        class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-warning/10 text-xs font-semibold text-warning"
+                        >!</span
+                      >
+                      <span class="text-sm text-slate-700 2xl:text-xs"
+                        >Campaña "Prueba de producto nuevo" pausada por bajo
+                        rendimiento.</span
+                      >
+                    </li>
+                  </ol>
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+Una influencer está empezando a relacionarse con marcas y necesita un dashboard para medir el impacto de sus anuncios en multiples redes sociales (instagram, tiktok, youtube, etc.)
+necesita un tablero de reporte donde pueda consolidar la información ¿Cuánto dinero estoy generando en comisiones? ¿Qué productos están generando más ingresos? ¿Qué tan bien convierten mis anuncios (conversiones / alcance)? ¿Qué plataformas están generando mejor retorno (ingresos/costes)? ¿Cuál es el engagement rate por plataforma y por producto?
+Contexto de negocio: tiene 3 productos (Producto A: 50€, Producto B: 120€, Producto C: 80€)
+Por cada venta generada recibe una comisión del 15%
+
+
+1. Setup / vinculación con Tailwind v4
+Preparar index.html con la estructura base y enganchar Tailwind por la Opción A (browser build) dentro de <style type="text/tailwindcss">, incluyendo el bloque @theme con los tokens de color (brand, positive, negative, warning, ig, tiktok, youtube).
+
+2. Chasis / layout general
+El esqueleto con Flexbox: navbar arriba (sticky) + aside sidebar + main con scroll. Sin contenido aún, solo las tres zonas colocadas y el contenedor centrado (max-w-[1600px] mx-auto).
+
+3. Navbar
+Logo/avatar, título, y a la derecha las acciones: selector de rango (7d/30d/90d), chips de filtro de plataforma, alertas y menú de usuario.
+
+4. Sidebar + drawer móvil
+Enlaces de navegación y el patrón checkbox + peer para que en móvil se abra/cierre.
+
+5. Componentes base reutilizables
+Definir el molde de la KPI Card y de la Widget Card (una de cada como plantilla) antes de repetirlas, para mantener consistencia.
+
+6. Bloque Superior — KPIs
+Rejilla de KPI Cards con los grupos (Volumen, Ingresos, Engagement, Retención, Rendimiento, Satisfacción, Eficiencia) y datos de ejemplo.
+
+7. Bloque Intermedio — Drivers
+Widget Cards con las gráficas en SVG/CSS: funnel, rendimiento por plataforma, por producto, calidad, actividad y engagement.
+
+8. Bloque Inferior — Detalles operacionales
+Tablas (productos, plataformas, campañas), panel de alertas y listados con filtros.
+
+9. Responsividad y repaso final
+Ajustar breakpoints (KPIs 2→4→6 col, drivers 1→2 col), scroll horizontal en tablas, y una revisión de consistencia (márgenes, sombras, accesibilidad de los SVG).
+
+Mi recomendación es ir en este orden e ir viendo el resultado en el navegador tras los pasos 2, 3 y 6 para validar sobre la marcha.
+¿Arrancamos con el paso 1 (setup + vinculación con Tailwind)? Si prefieres, puedo hacer los pasos 1 y 2 juntos para que ya veas el chasis en pantalla.
