@@ -1,17 +1,10 @@
-```
-╔══════════════════════════════════════════════════════════════════╗
-║                                                                    ║
-║               DASHBOARD SENCILLO CON TAILWIND CSS                 ║
-║                                                                    ║
-║   Panel de control estático para medir el impacto de campañas     ║
-║      de una influencer en Instagram, TikTok y YouTube              ║
-║                                                                    ║
-║   Autor:            Diego Reynoso                                 ║
-║   Tecnologías:       HTML5 semántico · Tailwind CSS v4 (CDN)       ║
-║                      · Chart.css · SVG/CSS puro · sin JavaScript   ║
-║                                                                    ║
-╚══════════════════════════════════════════════════════════════════╝
-```
+![Dashboard Sencillo con Tailwind CSS](./banner.svg)
+
+# Dashboard Sencillo con Tailwind CSS
+
+![HTML5](https://img.shields.io/badge/HTML5-sem%C3%A1ntico-E34F26?logo=html5&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38BDF8?logo=tailwindcss&logoColor=white) ![Chart.css](https://img.shields.io/badge/Chart.css-gr%C3%A1ficas-6366F1) ![Sin JavaScript](https://img.shields.io/badge/JavaScript-0%25-10B981)
+
+**Autor:** Diego Reynoso · **Tecnologías:** HTML5 semántico, Tailwind CSS v4 (CDN), Chart.css, SVG/CSS puro — sin JavaScript.
 
 ## Descripción del proyecto
 
@@ -41,7 +34,7 @@ El documento de diseño completo, con la lógica de cada decisión de layout, vi
 
 ## Características principales
 
-- **Chasis de aplicación**: navbar superior *sticky*, sidebar fija en escritorio y drawer deslizable en móvil — todo con Flexbox, sin ninguna librería de UI.
+- **Chasis de aplicación**: navbar superior _sticky_, sidebar fija en escritorio y drawer deslizable en móvil — todo con Flexbox, sin ninguna librería de UI.
 - **22 KPI Cards** agrupadas en 7 categorías (Volumen, Ingresos, Engagement, Retención, Rendimiento, Satisfacción, Eficiencia), cada una con icono, variación vs. periodo anterior, valor y etiqueta.
 - **6 Widgets de "Drivers de rendimiento"**, cada uno con una técnica de gráfica distinta:
   - Funnel de ventas (impresión → clic → lead → venta) en SVG con polígonos.
@@ -51,7 +44,7 @@ El documento de diseño completo, con la lógica de cada decisión de layout, vi
   - Engagement por plataforma, con un radar dibujado a mano en SVG.
 - **Detalle operacional**: tablas de productos, plataformas y campañas (con scroll horizontal en móvil), panel de alertas con color semántico y un widget de rankings con pestañas.
 - **100 % responsivo, mobile-first**: KPIs de 2 a 6 columnas, drivers de 1 a 2 columnas, y una vista compacta opcional por pestañas (sin scroll) para pantallas muy grandes (2xl+).
-- **Accesible**: estructura semántica completa (`header`, `nav`, `main`, `aside`, `section`, `table`), *skip link*, `aria-label` en controles ambiguos, gráficas SVG con `role="img"` + `<title>`, y una tabla de datos visible detrás de cada gráfica (ninguna cifra vive *solo* dentro de un SVG o un `conic-gradient`).
+- **Accesible**: estructura semántica completa (`header`, `nav`, `main`, `aside`, `section`, `table`), _skip link_, `aria-label` en controles ambiguos, gráficas SVG con `role="img"` + `<title>`, y una tabla de datos visible detrás de cada gráfica (ninguna cifra vive _solo_ dentro de un SVG o un `conic-gradient`).
 - **Cero JavaScript**: el drawer móvil, los menús desplegables y las pestañas de rankings están resueltos con los patrones `checkbox + peer`, `<details>/<summary>` y `radio + peer`.
 
 ---
@@ -120,4 +113,4 @@ Este es un proyecto personal de práctica, pero las sugerencias son bienvenidas:
 3. Haz commit de tus cambios con un mensaje claro.
 4. Abre un Pull Request describiendo qué cambia y por qué.
 
-Para reportar un problema o proponer una mejora sin escribir código, abre un *issue* en el repositorio.
+Para reportar un problema o proponer una mejora sin escribir código, abre un _issue_ en el repositorio.
